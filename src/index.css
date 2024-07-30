@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #0e8eb9;
+  }
+}
+@layer components {
+  .button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.3rem;
+  }
+  .room-grid {
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+}
