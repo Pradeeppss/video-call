@@ -10,6 +10,7 @@ export default function Home() {
     ev.preventDefault();
     const formdata = new FormData(ev.target as HTMLFormElement);
     const inputValue = formdata.get("username") as string;
+    if (!inputValue) return;
     localStorage.setItem("username", inputValue);
     const roomId = createRoom();
     navigator.clipboard.writeText(roomId);
@@ -20,6 +21,7 @@ export default function Home() {
     const formdata = new FormData(ev.target as HTMLFormElement);
     const inputValue = formdata.get("username") as string;
     const roomId = formdata.get("room-id") as string;
+    if (!inputValue || !roomId) return;
     localStorage.setItem("username", inputValue);
     navigate("/room/" + roomId);
   }
@@ -40,10 +42,7 @@ export default function Home() {
               name="username"
               defaultValue={localStorage.getItem("username") || ""}
             />
-            <button
-              disabled={!localStorage.getItem("username")}
-              className="button bg-primary text-white"
-            >
+            <button className="button bg-primary text-white">
               Start New Meet
             </button>
           </form>
