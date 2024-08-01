@@ -40,7 +40,22 @@ export default function Room() {
     setAllUsers([{ id: getSocketId(), username: name }]);
     getAllUsers(setAllUsers);
     singleRef.current = true;
+    return () => {
+      stopMediaStream();
+    };
   });
+  function stopMediaStream() {
+    console.log("stopping");
+    console.log(mediaStream);
+
+    if (mediaStream) {
+      const tracks = mediaStream.getTracks();
+      for (const track of tracks) {
+        track.stop();
+      }
+      setMediaStream(undefined);
+    }
+  }
   function startMediaStream() {
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
@@ -59,7 +74,11 @@ export default function Room() {
       <section className="flex gap-4">
         <div className="flex-1 grid gap-2 room-grid  max-h-[calc(100vh-4rem)]">
           <div className="bg-gray-600 rounded-md flex-1 relative aspect-video max-h-[calc(100vh-4rem)] ">
-            <VideoPlayer stream={mediaStream} username={username} />
+            <VideoPlayer
+              muted={true}
+              stream={mediaStream}
+              username={username}
+            />
             <p className="absolute bottom-2 left-2 text-white">{username}</p>
           </div>
           {allUsers.map((user) => {
@@ -69,7 +88,11 @@ export default function Room() {
                 key={user.id}
                 className="bg-gray-600 rounded-md flex-1 relative aspect-video max-h-[calc(100vh-4rem)] "
               >
-                <VideoPlayer stream={peerStream} username={user.username} />
+                <VideoPlayer
+                  muted={false}
+                  stream={peerStream}
+                  username={user.username}
+                />
                 <p className="absolute bottom-2 left-2 text-white">
                   {user.username}
                 </p>

@@ -15,13 +15,10 @@ let userStream: MediaStream;
 let trackAdded = false;
 
 export async function startService(stream: MediaStream) {
-  console.log("adding stream");
   userStream = stream;
   startConnection();
 }
 export function setStream() {
-  console.log("track adding");
-
   if (trackAdded) return;
   if (userStream) {
     trackAdded = true;
@@ -37,7 +34,6 @@ export function recieveRTCPeerconnection() {
 }
 
 export async function sendRTCOffer() {
-  console.log("sending offer");
   try {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -47,27 +43,21 @@ export async function sendRTCOffer() {
   }
 }
 pc.onnegotiationneeded = async () => {
-  console.log("negotitation needed");
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  console.log(offer);
   sendOffer(offer);
 };
 
 export async function setOffer(offer: RTCSessionDescriptionInit) {
-  console.log("recieving offfer");
   pc.setRemoteDescription(offer);
   sendRTCAnswer();
 }
 export async function sendRTCAnswer() {
-  console.log("sending answer");
   const answer = await pc.createAnswer();
   pc.setLocalDescription(answer);
-  console.log(answer);
   sendAnswer(answer);
 }
 export async function setAnswer(answer: RTCSessionDescriptionInit) {
-  console.log("setting answer");
   pc.setRemoteDescription(answer);
   // setStream();
   onConnectionDone();
@@ -82,8 +72,6 @@ export function createNewICECandidate(candidate: RTCIceCandidate) {
 }
 
 export function setRemoteDescription(description: RTCSessionDescriptionInit) {
-  console.log(description);
-
   pc.setRemoteDescription(description);
 }
 
@@ -97,8 +85,6 @@ export function getPeerStream(
   setPeerStream: React.Dispatch<React.SetStateAction<MediaStream | undefined>>
 ) {
   pc.ontrack = ({ streams }) => {
-    console.log("getting stream");
-
     setPeerStream(streams[0]);
   };
 }

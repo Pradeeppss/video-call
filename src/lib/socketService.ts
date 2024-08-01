@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { createRoomId } from "./helpers";
+import { createUniqueId } from "./helpers";
 import { User } from "../pages/Room";
 import {
   createNewICECandidate,
@@ -8,13 +8,14 @@ import {
   setOffer,
   setStream,
 } from "./webrtcService";
+import { config } from "../utils/config";
 
 type RTCMessage = {
   type: "candidate" | "offer" | "answer";
   item: any;
 };
 
-const socket = io("http://localhost:3001");
+const socket = io(config.baseUrl);
 let currentRoomId = "";
 let isInititator = false;
 let currentUsers: User[] = [];
@@ -42,7 +43,7 @@ socket.on("disconnect", () => {
 
 //
 export function createRoom() {
-  currentRoomId = createRoomId();
+  currentRoomId = createUniqueId();
   return currentRoomId;
 }
 
@@ -68,8 +69,16 @@ socket.on("start-rtc", () => {
 });
 
 //send message to room
-export function sendMessageToRoom(message: string, user: string) {
-  socket.emit("message", currentRoomId, message, user);
+export function sendMessageToRoom(
+  message: string,
+  messageId: string,
+  user: string
+) {
+  socket.emit("message", currentRoomId, message, messageId, user);
+}
+export function sendDeleteRequest(messageId: string) {
+  console.log("sending delete req");
+  socket.emit("message-delete", currentRoomId, messageId);
 }
 
 export function sendOffer(offer: RTCSessionDescriptionInit) {
@@ -97,9 +106,6 @@ export function onConnectionDone() {
   socket.emit("connection-finish", currentRoomId);
 }
 socket.on("rtc-finish", () => {
-  console.log(
-    "finished-------------------------------------------------------------"
-  );
   setStream();
 });
 
@@ -109,11 +115,17 @@ export function sendrtcMessages(message: RTCMessage) {
 
 //
 export function onMessageRecieved(
-  callback: (message: string, user: string) => void
+  callback: (message: string, messageId: string, user: string) => void
 ) {
-  socket.on("message", (message, user) => {
-    console.log(message, "recieved client");
-    callback(message, user);
+  socket.on("message", (message, messageId, user) => {
+    callback(message, messageId, user);
+  });
+}
+export function onDeleteRequest(callback: (messageId: string) => void) {
+  socket.on("delete-message", (messageId) => {
+    console.log("recieved delete req");
+
+    callback(messageId);
   });
 }
 

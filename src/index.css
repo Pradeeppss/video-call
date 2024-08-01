@@ -5,6 +5,7 @@
 @layer base {
   :root {
     --primary: #0e8eb9;
+    --secondary: #ea4644;
   }
 }
 @layer components {

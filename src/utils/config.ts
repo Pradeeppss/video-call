@@ -18,3 +18,9 @@ export const turnConfig = {
     },
   ],
 };
+
+const envs = import.meta.env;
+
+export const config = {
+  baseUrl: envs.VITE_BASE_URL,
+};

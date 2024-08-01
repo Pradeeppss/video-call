@@ -3,9 +3,11 @@ import { useEffect, useRef } from "react";
 export default function VideoPlayer({
   stream,
   username,
+  muted,
 }: {
   stream: MediaStream | undefined;
   username: string;
+  muted: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function VideoPlayer({
         <div className="w-full h-full rounded-md overflow-hidden">
           <video
             autoPlay
-            muted
+            muted={muted}
             ref={videoRef}
             className="w-full h-full object-cover "
           ></video>
