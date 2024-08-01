@@ -7,6 +7,8 @@ import socket, {
 } from "../lib/socketService";
 import { FaTrash } from "react-icons/fa";
 import { createUniqueId } from "../lib/helpers";
+import { useNavigate } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 
 type messageItem = {
   user: string;
@@ -21,6 +23,13 @@ export default function ChatBoard({ username }: { username: string }) {
   const singleRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated, isLoading } = useAuth0();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/");
+    }
+  }, [isLoading]);
   useEffect(() => {
     if (singleRef.current) return;
     onMessageRecieved(whenMessageRecieved);

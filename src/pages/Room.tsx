@@ -23,6 +23,7 @@ export default function Room() {
   const [mediaStream, setMediaStream] = useState<MediaStream>();
   const [peerStream, setpeerStream] = useState<MediaStream>();
   const [allUsers, setAllUsers] = useState<User[]>([]);
+
   const singleRef = useRef(false);
   useEffect(() => {
     if (singleRef.current || !roomId) return;
@@ -35,39 +36,25 @@ export default function Room() {
       return;
     }
     joinRoom(roomId, name);
-    startMediaStream();
     //@ts-expect-error
     setAllUsers([{ id: getSocketId(), username: name }]);
     getAllUsers(setAllUsers);
+    startMediaStream();
     singleRef.current = true;
-    return () => {
-      stopMediaStream();
-    };
+    // return stopMediaStream;
   });
-  function stopMediaStream() {
-    console.log("stopping");
-    console.log(mediaStream);
-
-    if (mediaStream) {
-      const tracks = mediaStream.getTracks();
-      for (const track of tracks) {
-        track.stop();
-      }
-      setMediaStream(undefined);
-    }
-  }
-  function startMediaStream() {
-    navigator.mediaDevices
-      .getUserMedia({ audio: true, video: true })
-      .then(getMediaStream)
-      .catch((err) => {
-        console.log(err);
+  async function startMediaStream() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
       });
-  }
-  function getMediaStream(stream: MediaStream) {
-    startService(stream);
-    setMediaStream(stream);
-    getPeerStream(setpeerStream);
+      startService(stream);
+      setMediaStream(stream);
+      getPeerStream(setpeerStream);
+    } catch (err) {
+      console.log(err);
+    }
   }
   return (
     <div className="h-screen bg-gray-900 grid p-8">

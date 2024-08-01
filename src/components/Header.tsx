@@ -3,13 +3,13 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Header() {
-  const { logout, isAuthenticated } = useAuth0();
+  const { logout, isAuthenticated, isLoading } = useAuth0();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!isAuthenticated) {
-      //   navigate("/");
+    if (!isLoading && !isAuthenticated) {
+      navigate("/");
     }
-  });
+  }, [isLoading]);
   function logoutUser() {
     logout();
   }
