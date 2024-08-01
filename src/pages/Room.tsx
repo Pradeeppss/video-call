@@ -3,7 +3,6 @@ import ChatBoard from "../components/ChatBoard";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getAllUsers,
-  getCurrentRoomId,
   getSocketId,
   joinRoom,
   setCurrentRoomId,

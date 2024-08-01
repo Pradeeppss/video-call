@@ -1,11 +1,9 @@
 import { turnConfig } from "../utils/config";
 import {
-  getIsInitiator,
   onConnectionDone,
   sendAnswer,
   sendCandidate,
   sendOffer,
-  sendrtcMessages,
   startConnection,
 } from "./socketService";
 

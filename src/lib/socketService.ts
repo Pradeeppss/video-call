@@ -18,7 +18,6 @@ type RTCMessage = {
 const socket = io(config.baseUrl);
 let currentRoomId = "";
 let isInititator = false;
-let currentUsers: User[] = [];
 
 export function getCurrentRoomId() {
   return currentRoomId;

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import socket, {
+import {
   onDeleteRequest,
   onMessageRecieved,
   sendDeleteRequest,

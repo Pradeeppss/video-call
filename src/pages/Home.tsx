@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { createRoom, joinRoom } from "../lib/socketService";
+import { createRoom } from "../lib/socketService";
 import { FormEvent } from "react";
 import Header from "../components/Header";
 
