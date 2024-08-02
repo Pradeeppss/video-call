@@ -11,8 +11,11 @@ export default function VideoPlayer({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
-    if (videoRef.current && stream) {
+    if (!videoRef.current) return;
+    if (stream) {
       videoRef.current.srcObject = stream;
+    } else {
+      videoRef.current.srcObject = null;
     }
   }, [stream]);
   return (
