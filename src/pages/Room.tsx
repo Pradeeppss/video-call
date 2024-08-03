@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ChatBoard from "../components/ChatBoard";
 import { useNavigate, useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
@@ -6,6 +6,7 @@ import { useSocket } from "../context/Socket";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useWebrtc } from "../context/Webrtc";
 import { FaPhoneSlash } from "react-icons/fa";
+import { getLocalEmail, getLocalUsername } from "../lib/helpers";
 
 export type User = {
   username: string;
@@ -14,7 +15,7 @@ export type User = {
 };
 
 export default function Room() {
-  const { socket } = useSocket();
+  const { socket, currRoom } = useSocket();
   const {
     peer,
     createOffer,
@@ -25,25 +26,20 @@ export default function Room() {
     // removeVideoTrack,
     exitCall,
   } = useWebrtc();
-  const { user } = useAuth0();
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const [username, setUsername] = useState<string>(`user_${Date.now()}`);
+  const [username, email] = useMemo(() => {
+    return [getLocalUsername(), getLocalEmail()];
+  }, []);
   const [calleeUser, setCalleeUser] = useState<User>();
 
   useEffect(() => {
-    const name = localStorage.getItem("username");
-    if (name) {
-      setUsername(name);
-    }
-    if (user) {
-      socket.emit("join-room", roomId, name || username, user.email);
-      socket.on("room-full", () => {
-        navigate("/home");
-      });
-    }
+    socket.emit("join-call", roomId, username, email);
+    socket.on("room-full", () => {
+      navigate("/home");
+    });
     getUserStream();
-  }, [user]);
+  }, []);
   useEffect(() => {
     if (socket) {
       socket.on("new-user", handleNewUserJoin);
@@ -139,7 +135,13 @@ export default function Room() {
         </div>
       </div>
       <div className="w-72 ">
-        <ChatBoard username={username} />
+        {currRoom ? (
+          <ChatBoard room={currRoom} />
+        ) : (
+          <div className="h-full flex justify-center items-center">
+            Loading...
+          </div>
+        )}
       </div>
     </section>
   );

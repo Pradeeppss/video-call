@@ -5,3 +5,19 @@ export function createUniqueId() {
   index++;
   return `${timestamp}${random}${index}`;
 }
+
+export function getLocalUsername() {
+  const username = localStorage.getItem("username");
+  if (!username) {
+    window.location.href = "/";
+  }
+  return username as string;
+}
+
+export function getLocalEmail() {
+  const email = localStorage.getItem("email");
+  if (!email) {
+    window.location.href = "/";
+  }
+  return email as string;
+}

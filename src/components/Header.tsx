@@ -1,22 +1,32 @@
-import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { axiosClient } from "../lib/axiosConfig";
+import { FaSignOutAlt } from "react-icons/fa";
 
-export default function Header() {
-  const { logout, isAuthenticated, isLoading } = useAuth0();
+export default function Header({ username }: { username: string }) {
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+  async function logoutUser() {
+    try {
+      await axiosClient.get("/logout");
+      navigate("/");
+    } catch (error) {
+      console.log(error);
       navigate("/");
     }
-  }, [isLoading]);
-  function logoutUser() {
-    logout();
   }
+
   return (
-    <header className="border p-2 flex justify-end ">
-      <button onClick={logoutUser} className="button  bg-purple-500 text-white">
-        Logout
+    <header className="border-b p-2 flex justify-between ">
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 border rounded-full flex items-center justify-center">
+          {username[0]}
+        </div>
+        <p>{username}</p>
+      </div>
+      <button
+        onClick={logoutUser}
+        className="button px-2 bg-gray-100 hover:bg-gray-200"
+      >
+        <FaSignOutAlt size={20} />
       </button>
     </header>
   );

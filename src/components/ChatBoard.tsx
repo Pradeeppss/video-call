@@ -1,32 +1,60 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FaTrash } from "react-icons/fa";
-import { createUniqueId } from "../lib/helpers";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAuth0 } from "@auth0/auth0-react";
+import {
+  createUniqueId,
+  getLocalEmail,
+  getLocalUsername,
+} from "../lib/helpers";
 import { useSocket } from "../context/Socket";
+import { ChatRoom } from "../types/userTypes";
+import { useQuery } from "react-query";
+import { axiosClient } from "../lib/axiosConfig";
 
 type messageItem = {
   user: string;
+  userEmail: string;
   message: string;
   id: string;
   deletable: boolean;
   deleted: boolean;
 };
+type PrevMessage = {
+  roomId: string;
+  from: string;
+  message: string;
+  _id: string;
+};
 const deleteTime = 2 * 60;
-export default function ChatBoard({ username }: { username: string }) {
+export default function ChatBoard({ room }: { room: ChatRoom }) {
+  const [username, email] = useMemo(() => {
+    return [getLocalUsername(), getLocalEmail()];
+  }, []);
   const { socket } = useSocket();
-  const { roomId } = useParams();
   const [messages, setMessages] = useState<messageItem[]>([]);
+  const [prevMessages, setPrevMessages] = useState<PrevMessage[]>([]);
+  const [prevPending, setPrevPending] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
-  const { isAuthenticated, isLoading } = useAuth0();
-  const navigate = useNavigate();
+
+  const allMessages = useQuery({
+    queryKey: ["all-messages", room],
+    queryFn: () => {
+      return axiosClient.get(`/messages?room=${room._id}`);
+    },
+    refetchOnWindowFocus: false,
+  });
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/");
+    if (allMessages.isLoading || allMessages.isError) {
+      setPrevPending(true);
+    } else if (allMessages.data) {
+      const { data } = allMessages.data.data;
+      setPrevMessages(data);
+      setPrevPending(false);
     }
-  }, [isLoading]);
+  }, [allMessages.isLoading, allMessages.data, allMessages.isError]);
+
   useEffect(() => {
+    socket.emit("join-room", room._id, username, email);
     socket.on("message", handleMessageRecieve);
     socket.on("delete-message", handleMessageDeletion);
     return () => {
@@ -37,12 +65,20 @@ export default function ChatBoard({ username }: { username: string }) {
   function handleMessageRecieve(
     message: string,
     messageId: string,
-    user: string
+    user: string,
+    userEmail: string
   ) {
     setMessages((prev) => {
       return [
         ...prev,
-        { message, id: messageId, user, deletable: true, deleted: false },
+        {
+          message,
+          id: messageId,
+          user,
+          userEmail,
+          deletable: true,
+          deleted: false,
+        },
       ];
     });
     messageTimer(messageId);
@@ -80,27 +116,58 @@ export default function ChatBoard({ username }: { username: string }) {
     ev.preventDefault();
     const formdata = new FormData(ev.target as HTMLFormElement);
     const inputValue = formdata.get("message") as string;
-    socket.emit("message", roomId, inputValue, createUniqueId(), username);
+    socket.emit(
+      "message",
+      room._id,
+      inputValue,
+      createUniqueId(),
+      username,
+      email
+    );
     if (inputRef.current) {
       inputRef.current.value = "";
     }
   }
   function handledeleteRequest(index: number) {
     const messageId = messages[index].id;
-    socket.emit("message-delete", roomId, messageId);
+    socket.emit("message-delete", room._id, messageId);
   }
   return (
-    <div className="flex flex-col gap-2 bg-slate-100 h-full p-2 rounded-md">
+    <div className="flex flex-col gap-2 bg-slate-100 h-full p-2 rounded-md ">
       <div
         ref={chatRef}
-        className="flex-1  flex flex-col gap-3  p-1 overflow-auto max-h-[calc(100%-3rem)] no-scroll "
+        className="flex-1  flex flex-col gap-3  p-4 overflow-auto max-h-[calc(100%-3rem)] no-scroll  "
       >
+        {prevPending ? (
+          <div>Loading. . .</div>
+        ) : (
+          <>
+            {prevMessages.map((message) => {
+              return (
+                <div
+                  key={message._id}
+                  className={`flex flex-col gap-[1px] ${
+                    email === message.from ? "items-end" : "items-start"
+                  }`}
+                >
+                  <p
+                    className={`${
+                      email === message.from ? "bg-blue-200" : "bg-white"
+                    } rounded-full py-1 px-3 w-fit  border`}
+                  >
+                    {message.message}
+                  </p>
+                </div>
+              );
+            })}
+          </>
+        )}
         {messages.map((message, index) => {
           return (
             <div
               key={index}
               className={`flex flex-col gap-[1px] ${
-                username === message.user ? "items-start" : "items-end"
+                email === message.userEmail ? "items-end" : "items-start"
               }`}
             >
               {message.deleted ? (
@@ -109,12 +176,16 @@ export default function ChatBoard({ username }: { username: string }) {
                 </p>
               ) : (
                 <>
-                  <p className="text-xs mx-1 text-slate-600">{message.user}</p>
+                  {/* <p className="text-xs mx-1 text-slate-600">{message.user}</p> */}
                   <div className="flex">
-                    <p className="bg-white rounded-full py-1 px-3 w-fit   border">
+                    <p
+                      className={`${
+                        email === message.userEmail ? "bg-blue-200" : "bg-white"
+                      } rounded-full py-1 px-3 w-fit  border`}
+                    >
                       {message.message}
                     </p>
-                    {message.user === username && message.deletable && (
+                    {message.userEmail === email && message.deletable && (
                       <button
                         onClick={() => handledeleteRequest(index)}
                         className="button p-1 "
