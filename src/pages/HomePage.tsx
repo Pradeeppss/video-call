@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Header from "../components/Header";
 import { toast } from "react-toastify";
 import { getLocalEmail, getLocalUsername } from "../lib/helpers";
-import { useNavigate } from "react-router-dom";
 import ChatBoard from "../components/ChatBoard";
 import { ChatRoom, ChatUser } from "../types/userTypes";
 import { axiosClient } from "../lib/axiosConfig";
@@ -19,7 +18,6 @@ export default function HomePage() {
   const [allRooms, setAllRooms] = useState<ChatRoom[]>([]);
   const { currRoom, setCurrRoom } = useSocket();
   const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     getAllusers();

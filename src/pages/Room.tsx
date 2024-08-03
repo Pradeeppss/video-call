@@ -3,7 +3,6 @@ import ChatBoard from "../components/ChatBoard";
 import { useNavigate, useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import { useSocket } from "../context/Socket";
-import { useAuth0 } from "@auth0/auth0-react";
 import { useWebrtc } from "../context/Webrtc";
 import { FaPhoneSlash } from "react-icons/fa";
 import { getLocalEmail, getLocalUsername } from "../lib/helpers";

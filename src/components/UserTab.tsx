@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ChatRoom, ChatUser } from "../types/userTypes";
+import { ChatRoom } from "../types/userTypes";
 
 export default function UserTab({
   room,
