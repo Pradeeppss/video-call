@@ -82,11 +82,8 @@ export default function Room() {
     }
   }
   async function handleNegotiation() {
-    const offer = await createOffer();
-    if (offer) {
-      peer.setLocalDescription(offer);
-      socket.emit("send-offer", offer, roomId);
-    }
+    await peer.setLocalDescription();
+    socket.emit("send-offer", peer.localDescription, roomId);
   }
   function handleNewCalleeUser(users: User[]) {
     users.forEach((ur) => {
