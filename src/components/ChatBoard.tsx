@@ -9,6 +9,7 @@ import { useSocket } from "../context/Socket";
 import { ChatRoom } from "../types/userTypes";
 import { useQuery } from "react-query";
 import { axiosClient } from "../lib/axiosConfig";
+import { FaPaperPlane } from "react-icons/fa6";
 
 type messageItem = {
   user: string;
@@ -29,6 +30,13 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
   const [username, email] = useMemo(() => {
     return [getLocalUsername(), getLocalEmail()];
   }, []);
+  const otherUser = useMemo(() => {
+    if (room.userOne.email === email) {
+      return room.userTwo;
+    } else {
+      return room.userOne;
+    }
+  }, [room]);
   const { socket } = useSocket();
   const [messages, setMessages] = useState<messageItem[]>([]);
   const [prevMessages, setPrevMessages] = useState<PrevMessage[]>([]);
@@ -54,7 +62,7 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
   }, [allMessages.isLoading, allMessages.data, allMessages.isError]);
 
   useEffect(() => {
-    socket.emit("join-room", room._id, username, email);
+    socket.emit("join-room", room._id, { email, username }, otherUser);
     socket.on("message", handleMessageRecieve);
     socket.on("delete-message", handleMessageDeletion);
     return () => {
@@ -133,7 +141,7 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
     socket.emit("message-delete", room._id, messageId);
   }
   return (
-    <div className="flex flex-col gap-2 bg-slate-100 h-full p-2 rounded-md ">
+    <div className="flex flex-col gap-2 bg-slate-100 h-full p-2 rounded-md border ">
       <div
         ref={chatRef}
         className="flex-1  flex flex-col gap-3  p-4 overflow-auto max-h-[calc(100%-3rem)] no-scroll  "
@@ -178,13 +186,6 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
                 <>
                   {/* <p className="text-xs mx-1 text-slate-600">{message.user}</p> */}
                   <div className="flex">
-                    <p
-                      className={`${
-                        email === message.userEmail ? "bg-blue-200" : "bg-white"
-                      } rounded-full py-1 px-3 w-fit  border`}
-                    >
-                      {message.message}
-                    </p>
                     {message.userEmail === email && message.deletable && (
                       <button
                         onClick={() => handledeleteRequest(index)}
@@ -193,6 +194,13 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
                         <FaTrash size={16} />
                       </button>
                     )}
+                    <p
+                      className={`${
+                        email === message.userEmail ? "bg-blue-200" : "bg-white"
+                      } rounded-full py-1 px-3 w-fit  border`}
+                    >
+                      {message.message}
+                    </p>
                   </div>
                 </>
               )}
@@ -208,7 +216,9 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
             className="flex-1 border p-1 rounded-sm"
             type="text"
           />
-          <button className="button bg-primary">Send</button>
+          <button className="button bg-primary text-white">
+            <FaPaperPlane size={20} />
+          </button>
         </form>
       </div>
     </div>

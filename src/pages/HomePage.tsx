@@ -9,20 +9,40 @@ import UserTab from "../components/UserTab";
 import { FaPlus } from "react-icons/fa6";
 import ChatHead from "../components/ChatHead";
 import { useSocket } from "../context/Socket";
+import NotficationBox from "../components/NotificationBox";
 
 export default function HomePage() {
   const [username, email] = useMemo(() => {
     return [getLocalUsername(), getLocalEmail()];
   }, []);
+  const { socket } = useSocket();
   const [allUsers, setAllusers] = useState<ChatUser[]>([]);
   const [allRooms, setAllRooms] = useState<ChatRoom[]>([]);
+  const [callRequests, setCallRequests] = useState<string[]>([]);
   const { currRoom, setCurrRoom } = useSocket();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    socket.emit("user-online", email);
+    socket.on("call-request", handleCallRequest);
+    socket.on("left-room", handleCallCancel);
     getAllusers();
     getAllChatRooms();
+    return () => {
+      socket.off("call-request", handleCallRequest);
+      socket.off("left-room", handleCallCancel);
+    };
   }, []);
+  function handleCallRequest(roomId: string) {
+    const newReq = callRequests.concat(roomId);
+    setCallRequests(newReq);
+  }
+
+  function handleCallCancel(roomId: string) {
+    console.log("call cancelled");
+    const newReq = callRequests.filter((Id) => Id !== roomId);
+    setCallRequests(newReq);
+  }
   async function getAllusers() {
     try {
       const response = await axiosClient.get("/users");
@@ -46,12 +66,10 @@ export default function HomePage() {
       console.log(error);
     }
   }
-
   async function getChatroom(index: number) {
     const currentRoom = allRooms[index];
     setCurrRoom(currentRoom);
   }
-
   function handlechatRoomRequest(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const formdata = new FormData(ev.target as HTMLFormElement);
@@ -106,7 +124,7 @@ export default function HomePage() {
 
   return (
     <section className=" h-screen flex ">
-      <section className="border w-72">
+      <section className="border w-72 relative">
         <Header username={username} />
         <form onSubmit={handlechatRoomRequest} className="p-2 flex gap-2">
           <input
@@ -121,7 +139,7 @@ export default function HomePage() {
             <FaPlus />
           </button>
         </form>
-        <div className="p-2 flex flex-col gap-2">
+        <div className="p-2 flex flex-col gap-2 ">
           {allRooms.map((room, index) => {
             return (
               <UserTab
@@ -130,16 +148,25 @@ export default function HomePage() {
                 index={index}
                 me={email}
                 room={room}
+                calling={callRequests.includes(room._id)}
               />
             );
           })}
+        </div>
+        <div className="absolute bottom-0 w-full ">
+          <NotficationBox />
         </div>
       </section>
       <section className="flex-1">
         {currRoom ? (
           <div className="h-full flex flex-col">
-            <ChatHead room={currRoom} me={email} />
-            <div className="flex-1">
+            <ChatHead
+              room={currRoom}
+              me={email}
+              calling={callRequests.includes(currRoom._id)}
+              cancelCall={handleCallCancel}
+            />
+            <div className="h-[calc(100%-3.7rem)]">
               <ChatBoard room={currRoom} />
             </div>
           </div>

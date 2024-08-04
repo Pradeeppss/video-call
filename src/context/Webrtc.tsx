@@ -19,8 +19,10 @@ type WebrtcContent = {
   calleeStream: MediaStream | undefined;
   getUserStream: () => void;
   removeVideoTrack: () => void;
+  removeAudioTrack: () => void;
   exitCall: () => void;
   stopUserStream: () => void;
+  restartTrack: (video: boolean, audio: boolean) => void;
 };
 
 //@ts-expect-error
@@ -91,8 +93,43 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
   }
 
   function removeVideoTrack() {
-    if (videoSender.current) {
+    if (userStream?.active && videoSender.current) {
+      userStream.removeTrack(userStream.getVideoTracks()[0]);
+      userStream.getVideoTracks().forEach((track) => {
+        track.stop();
+      });
+
       peer.removeTrack(videoSender.current);
+    }
+  }
+  function removeAudioTrack() {
+    if (userStream?.active && audioSender.current) {
+      userStream.removeTrack(userStream.getAudioTracks()[0]);
+      userStream.getAudioTracks().forEach((track) => {
+        track.stop();
+      });
+      peer.removeTrack(audioSender.current);
+    }
+  }
+  async function restartTrack(video: boolean, audio: boolean) {
+    console.log("restarting tracks");
+    if (userStream) {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video,
+        audio,
+      });
+      for (const track of userStream.getTracks()) {
+        userStream.removeTrack(track);
+      }
+      for (const track of stream.getTracks()) {
+        userStream.addTrack(track);
+        if (track.kind === "video") {
+          videoSender.current = peer.addTrack(track, stream);
+        }
+        if (track.kind === "audio") {
+          audioSender.current = peer.addTrack(track, stream);
+        }
+      }
     }
   }
 
@@ -147,8 +184,10 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
         getUserStream,
         calleeStream,
         removeVideoTrack,
+        removeAudioTrack,
         exitCall,
         stopUserStream,
+        restartTrack,
       }}
     >
       {children}

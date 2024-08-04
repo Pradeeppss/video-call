@@ -7,6 +7,10 @@ export type SocketContent = {
   socket: Socket;
   currRoom: ChatRoom | undefined;
   setCurrRoom: React.Dispatch<React.SetStateAction<ChatRoom | undefined>>;
+  notifStatus: "default" | "denied" | "granted";
+  setNotifStatus: React.Dispatch<
+    React.SetStateAction<"default" | "denied" | "granted">
+  >;
 };
 
 //@ts-expect-error
@@ -18,11 +22,14 @@ export const useSocket = () => {
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [currRoom, setCurrRoom] = useState<ChatRoom>();
+  const [notifStatus, setNotifStatus] = useState(Notification.permission);
   const socket = useMemo(() => {
     return io(config.baseUrl);
   }, []);
   return (
-    <socketContext.Provider value={{ socket, currRoom, setCurrRoom }}>
+    <socketContext.Provider
+      value={{ socket, currRoom, setCurrRoom, notifStatus, setNotifStatus }}
+    >
       {children}
     </socketContext.Provider>
   );
