@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import ChatBoard from "../components/ChatBoard";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import { useSocket } from "../context/Socket";
 import { useWebrtc } from "../context/Webrtc";
-import { FaPhoneSlash, FaVolumeOff } from "react-icons/fa";
+import { FaPhoneSlash } from "react-icons/fa";
 import { getLocalEmail, getLocalUsername } from "../lib/helpers";
 import {
   FaVideo,
@@ -37,7 +37,6 @@ export default function Room() {
     exitCall,
   } = useWebrtc();
   const { roomId } = useParams();
-  const navigate = useNavigate();
   const [username, email] = useMemo(() => {
     return [getLocalUsername(), getLocalEmail()];
   }, []);
