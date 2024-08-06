@@ -1,4 +1,11 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Header from "../components/Header";
 import { toast } from "react-toastify";
 import { getLocalEmail, getLocalUsername } from "../lib/helpers";
@@ -6,7 +13,7 @@ import ChatBoard from "../components/ChatBoard";
 import { ChatRoom, ChatUser } from "../types/userTypes";
 import { axiosClient } from "../lib/axiosConfig";
 import UserTab from "../components/UserTab";
-import { FaPlus } from "react-icons/fa6";
+import { FaUserPlus } from "react-icons/fa6";
 import ChatHead from "../components/ChatHead";
 import { useSocket } from "../context/Socket";
 import NotficationBox from "../components/NotificationBox";
@@ -17,6 +24,7 @@ export default function HomePage() {
   }, []);
   const { socket } = useSocket();
   const [allUsers, setAllusers] = useState<ChatUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ChatUser[]>([]);
   const [allRooms, setAllRooms] = useState<ChatRoom[]>([]);
   const [callRequests, setCallRequests] = useState<string[]>([]);
   const { currRoom, setCurrRoom } = useSocket();
@@ -71,6 +79,7 @@ export default function HomePage() {
     setCurrRoom(currentRoom);
   }
   function handlechatRoomRequest(ev: FormEvent<HTMLFormElement>) {
+    console.log("submitted");
     ev.preventDefault();
     const formdata = new FormData(ev.target as HTMLFormElement);
     const userEmail = formdata.get("chat-email") as string;
@@ -80,11 +89,17 @@ export default function HomePage() {
         console.log("creating room");
         createChatRoom(userEmail);
       } else {
-        toast.warning("room already exists");
+        toast.warning("room does not exist");
       }
     }
     //@ts-expect-error
     inputRef.current.value = "";
+  }
+  function setinputEmail(email: string) {
+    if (inputRef.current) {
+      inputRef.current.value = email;
+      setFilteredUsers([]);
+    }
   }
   function checkRoomViability(userEmail: string) {
     const exist = allUsers.filter(
@@ -121,22 +136,58 @@ export default function HomePage() {
       console.log(error);
     }
   }
-
+  function filterUserList(ev: ChangeEvent<HTMLInputElement>) {
+    const value = ev.target.value;
+    if (value === "") {
+      setFilteredUsers([]);
+      return;
+    }
+    const filtered = allUsers.filter((user) => {
+      return user.email.includes(value);
+    });
+    setFilteredUsers(filtered);
+  }
   return (
     <section className=" h-screen flex ">
       <section className="border w-72 relative">
         <Header username={username} />
-        <form onSubmit={handlechatRoomRequest} className="p-2 flex gap-2">
-          <input
-            name="chat-email"
-            className="border flex-1 px-2 rounded-md"
-            type="text"
-            placeholder="add email"
-            required
-            ref={inputRef}
-          />
+        <form
+          autoComplete="off"
+          onSubmit={handlechatRoomRequest}
+          className="p-2 flex gap-2 group"
+        >
+          <div className="relative w-full">
+            <input
+              name="chat-email"
+              className="border w-full px-2 rounded-md h-full "
+              onChange={filterUserList}
+              type="text"
+              placeholder="user email"
+              required
+              ref={inputRef}
+            />
+            {filteredUsers.length > 0 && (
+              <div className="absolute w-full p-[2px] max-h-80 overflow-auto bg-gray-600 flex-col gap-[2px] z-10 mt-[1px] hidden group-focus-within:flex ">
+                {filteredUsers.map((user) => {
+                  return (
+                    <button
+                      key={user.email}
+                      type="button"
+                      onClick={() => setinputEmail(user.email)}
+                      className="button bg-white p-0 rounded-none  w-full text-start hover:bg-gray-100"
+                    >
+                      <div className=" p-2 ">
+                        {/* <p className="text-sm">{user.username}</p> */}
+                        <p className="text-sm">{user.email}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <button className="button bg-gray-100 py-3 px-3 ">
-            <FaPlus />
+            <FaUserPlus size={22} />
           </button>
         </form>
         <div className="p-2 flex flex-col gap-2 ">
@@ -166,7 +217,7 @@ export default function HomePage() {
               calling={callRequests.includes(currRoom._id)}
               cancelCall={handleCallCancel}
             />
-            <div className="h-[calc(100%-3.7rem)]">
+            <div className="h-[calc(100%-3.6rem)]">
               <ChatBoard room={currRoom} />
             </div>
           </div>

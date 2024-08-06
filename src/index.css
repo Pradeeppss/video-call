@@ -7,6 +7,9 @@
     --primary: #0e8eb9;
     --secondary: #ea4644;
   }
+  * {
+    scrollbar-width: thin;
+  }
 }
 @layer components {
   .button {
@@ -17,5 +20,44 @@
   .room-grid {
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     grid-template-rows: repeat(auto-fit, minmax(10rem, 1fr));
+  }
+  .message-card {
+    position: relative;
+    box-shadow: -1px 2px 1px 0px #dbdbe0;
+    background-color: white;
+    border-radius: 0.4rem;
+  }
+  .message-card::before {
+    content: "";
+    position: absolute;
+    --tri-size: 8px;
+  }
+  .message-card-right {
+    --right-card-bg: #d3e3f7;
+    background-color: var(--right-card-bg);
+    border-top-right-radius: 0px;
+  }
+  .message-card-right::before {
+    border-right: var(--tri-size) solid transparent;
+    border-top: var(--tri-size) solid transparent;
+    border-left: var(--tri-size) solid transparent;
+    border-bottom: var(--tri-size) solid var(--right-card-bg);
+    top: calc(0px - var(--tri-size));
+    left: calc(100% - var(--tri-size));
+    rotate: -45deg;
+    box-shadow: 0px 1px 1px 0px #dbdbe0;
+  }
+  .message-card-left {
+    border-top-left-radius: 0px;
+  }
+  .message-card-left::before {
+    border-right: var(--tri-size) solid transparent;
+    border-top: var(--tri-size) solid transparent;
+    border-left: var(--tri-size) solid transparent;
+    border-bottom: var(--tri-size) solid white;
+    rotate: 45deg;
+    top: calc(0px - var(--tri-size));
+    right: calc(100% - var(--tri-size));
+    box-shadow: 0px 2px #dbdbe0;
   }
 }

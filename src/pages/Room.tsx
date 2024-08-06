@@ -26,7 +26,6 @@ export default function Room() {
   const [peerAudioOn, setPeerAudioOn] = useState(true);
   const {
     peer,
-    createOffer,
     onRTCConnection,
     getUserStream,
     userStream,
@@ -46,7 +45,6 @@ export default function Room() {
     socket.emit("join-call", roomId, username, email);
     if (!currRoom) {
       handleCallDisconnect();
-      // navigate("/home");
     }
     getUserStream();
   }, []);
@@ -75,10 +73,10 @@ export default function Room() {
   }, [socket]);
 
   async function handleNewUserJoin() {
-    const offer = await createOffer();
+    const offer = await peer.createOffer();
     if (offer) {
-      peer.setLocalDescription(offer);
-      socket.emit("send-offer", offer, roomId);
+      await peer.setLocalDescription(offer);
+      socket.emit("send-offer", peer.localDescription, roomId);
     }
   }
   async function handleNegotiation() {
@@ -96,15 +94,25 @@ export default function Room() {
     setCalleeUser(undefined);
   }
   async function handleOfferRecieving(offer: RTCSessionDescriptionInit) {
-    await peer.setRemoteDescription(offer);
-    const answer = await peer.createAnswer();
-    await peer.setLocalDescription(answer);
-    socket.emit("send-answer", answer, roomId);
+    try {
+      const remoteDesc = new RTCSessionDescription(offer);
+      await peer.setRemoteDescription(remoteDesc);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      socket.emit("send-answer", answer, roomId);
+    } catch (err) {
+      console.log(err, "-----------------");
+    }
   }
   async function handleAnserRecieving(answer: RTCSessionDescriptionInit) {
-    await peer.setRemoteDescription(answer);
-    socket.emit("connection-finish", roomId);
-    onRTCConnection();
+    try {
+      const remoteDesc = new RTCSessionDescription(answer);
+      await peer.setRemoteDescription(remoteDesc);
+      socket.emit("connection-finish", roomId);
+      onRTCConnection();
+    } catch (err) {
+      console.log(err, "=========");
+    }
   }
   function handleCallDisconnect() {
     socket.emit("exit-user", socket.id, roomId, email);
@@ -196,7 +204,7 @@ export default function Room() {
           </div>
         </div>
       </div>
-      <div className="w-72 ">
+      <div className="w-72 rounded-md overflow-hidden">
         {currRoom ? (
           <ChatBoard room={currRoom} />
         ) : (
