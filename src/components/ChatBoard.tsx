@@ -10,13 +10,14 @@ import { ChatRoom } from "../types/userTypes";
 import { useQuery } from "react-query";
 import { axiosClient } from "../lib/axiosConfig";
 import { FaPaperPlane } from "react-icons/fa6";
+import { toast } from "react-toastify";
 
 type messageItem = {
   user: string;
   userEmail: string;
   message: string;
   id: string;
-  deletable: boolean;
+  exp: number;
   deleted: boolean;
 };
 type PrevMessage = {
@@ -24,6 +25,14 @@ type PrevMessage = {
   from: string;
   message: string;
   _id: string;
+};
+type LatestMessage = {
+  roomId: string;
+  email: string;
+  message: string;
+  messageId: string;
+  username: string;
+  exp: number;
 };
 const deleteTime = 2 * 60;
 export default function ChatBoard({ room }: { room: ChatRoom }) {
@@ -55,12 +64,18 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
     if (allMessages.isLoading || allMessages.isError) {
       setPrevPending(true);
     } else if (allMessages.data) {
-      const { data } = allMessages.data.data;
-      setPrevMessages(data);
+      const { old, latest } = allMessages.data.data.data;
+      setPrevMessages(old);
+      setupLatestMessages(latest);
       setPrevPending(false);
     }
   }, [allMessages.isLoading, allMessages.data, allMessages.isError]);
-
+  useEffect(() => {
+    if (chatRef.current) {
+      const lastMessage = chatRef.current.lastElementChild;
+      lastMessage?.scrollIntoView();
+    }
+  }, [prevMessages]);
   useEffect(() => {
     socket.emit("join-room", room._id, { email, username }, otherUser);
     socket.on("message", handleMessageRecieve);
@@ -70,6 +85,19 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
       socket.off("delete-message", handleMessageDeletion);
     };
   });
+  function setupLatestMessages(latest: LatestMessage[]) {
+    const updatedLatest: messageItem[] = latest.map((item) => {
+      return {
+        id: item.messageId,
+        message: item.message,
+        user: item.username,
+        userEmail: item.email,
+        deleted: false,
+        exp: item.exp - 60 * 1000,
+      };
+    });
+    setMessages(updatedLatest);
+  }
   function handleMessageRecieve(
     message: string,
     messageId: string,
@@ -84,12 +112,11 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
           id: messageId,
           user,
           userEmail,
-          deletable: true,
+          exp: Date.now() + deleteTime * 1000,
           deleted: false,
         },
       ];
     });
-    messageTimer(messageId);
   }
   function handleMessageDeletion(messageId: string) {
     setMessages((prev) => {
@@ -102,18 +129,6 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
     });
   }
 
-  function messageTimer(messageId: string) {
-    setTimeout(() => {
-      setMessages((prev) => {
-        return prev.map((message) => {
-          if (message.id === messageId) {
-            message.deletable = false;
-          }
-          return message;
-        });
-      });
-    }, deleteTime * 1000);
-  }
   useEffect(() => {
     if (chatRef.current) {
       const lastMessage = chatRef.current.lastElementChild;
@@ -137,14 +152,18 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
     }
   }
   function handledeleteRequest(index: number) {
+    if (messages[index].exp < Date.now()) {
+      toast.error("too long to delete");
+      return;
+    }
     const messageId = messages[index].id;
     socket.emit("message-delete", room._id, messageId);
   }
   return (
-    <div className="flex flex-col gap-2 bg-slate-100 h-full p-2 rounded-md border ">
+    <div className="flex flex-col gap-2 bg-slate-100 h-full  ">
       <div
         ref={chatRef}
-        className="flex-1  flex flex-col gap-3  p-4 overflow-auto max-h-[calc(100%-3rem)] no-scroll  "
+        className="flex-1  flex flex-col gap-3  p-8 overflow-auto max-h-[calc(100%-3rem)] no-scroll  "
       >
         {prevPending ? (
           <div>Loading. . .</div>
@@ -160,8 +179,10 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
                 >
                   <p
                     className={`${
-                      email === message.from ? "bg-blue-200" : "bg-white"
-                    } rounded-full py-1 px-3 w-fit  border`}
+                      email === message.from
+                        ? "message-card-right"
+                        : "message-card-left"
+                    }  py-1 px-3 w-fit message-card`}
                   >
                     {message.message}
                   </p>
@@ -174,7 +195,7 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
           return (
             <div
               key={index}
-              className={`flex flex-col gap-[1px] ${
+              className={`flex flex-col group gap-[1px] ${
                 email === message.userEmail ? "items-end" : "items-start"
               }`}
             >
@@ -185,19 +206,21 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
               ) : (
                 <>
                   {/* <p className="text-xs mx-1 text-slate-600">{message.user}</p> */}
-                  <div className="flex">
-                    {message.userEmail === email && message.deletable && (
+                  <div className="flex gap-2 ">
+                    {message.userEmail === email && (
                       <button
                         onClick={() => handledeleteRequest(index)}
-                        className="button p-1 "
+                        className="button p-1 hidden group-hover:block text-gray-700"
                       >
                         <FaTrash size={16} />
                       </button>
                     )}
                     <p
                       className={`${
-                        email === message.userEmail ? "bg-blue-200" : "bg-white"
-                      } rounded-full py-1 px-3 w-fit  border`}
+                        email === message.userEmail
+                          ? "message-card-right"
+                          : "message-card-left"
+                      }  py-1 px-3 w-fit message-card`}
                     >
                       {message.message}
                     </p>
@@ -208,7 +231,7 @@ export default function ChatBoard({ room }: { room: ChatRoom }) {
           );
         })}
       </div>
-      <div>
+      <div className="p-2">
         <form onSubmit={handleSubmit} action="" className="flex gap-2">
           <input
             name="message"

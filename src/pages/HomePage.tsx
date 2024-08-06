@@ -166,7 +166,7 @@ export default function HomePage() {
               calling={callRequests.includes(currRoom._id)}
               cancelCall={handleCallCancel}
             />
-            <div className="h-[calc(100%-3.7rem)]">
+            <div className="h-[calc(100%-3.6rem)]">
               <ChatBoard room={currRoom} />
             </div>
           </div>

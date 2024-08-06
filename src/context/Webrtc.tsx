@@ -13,7 +13,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 type WebrtcContent = {
   peer: RTCPeerConnection;
-  createOffer: () => Promise<RTCSessionDescriptionInit | null>;
   onRTCConnection: () => void;
   userStream: MediaStream | undefined;
   calleeStream: MediaStream | undefined;
@@ -34,6 +33,9 @@ export const useWebrtc = () => {
 
 export function WebrtcProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocket();
+  const peer = useMemo(() => {
+    return new RTCPeerConnection(turnConfig);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const [userStream, setUserStream] = useState<MediaStream>();
@@ -42,9 +44,6 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
   const singleRef = useRef(true);
   const videoSender = useRef<RTCRtpSender>();
   const audioSender = useRef<RTCRtpSender>();
-  const peer = useMemo(() => {
-    return new RTCPeerConnection(turnConfig);
-  }, []);
   //
   useEffect(() => {
     if (location.pathname === "/home") {
@@ -56,24 +55,38 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
   }, [location]);
   //
   useEffect(() => {
-    peer.addEventListener("icecandidate", handleIceCandidate);
-    peer.addEventListener("track", handleCalleeTrack);
-    socket.on("recieve-candidate", handleRecieveCandidate);
-    return () => {
-      peer.removeEventListener("icecandidate", handleIceCandidate);
-      socket.off("recieve-candidate", handleRecieveCandidate);
-    };
+    if (peer) {
+      peer.addEventListener("icecandidate", handleIceCandidate);
+      peer.addEventListener("connectionstatechange", handleConnectionState);
+      peer.addEventListener("track", handleCalleeTrack);
+      socket.on("recieve-candidate", handleRecieveCandidate);
+      return () => {
+        peer.removeEventListener("icecandidate", handleIceCandidate);
+        peer.removeEventListener("track", handleCalleeTrack);
+        peer.removeEventListener(
+          "connectionstatechange",
+          handleConnectionState
+        );
+        socket.off("recieve-candidate", handleRecieveCandidate);
+      };
+    }
   }, [peer]);
-
   function handleIceCandidate(event: RTCPeerConnectionIceEvent) {
-    socket.emit("send-candidate", event.candidate);
+    if (event.candidate) {
+      socket.emit("send-candidate", event.candidate);
+    }
   }
   async function handleRecieveCandidate(candidate: RTCIceCandidate) {
-    const newCan = new RTCIceCandidate({
-      candidate: candidate.candidate,
-      sdpMLineIndex: candidate.sdpMLineIndex,
-    });
-    await peer.addIceCandidate(newCan);
+    await peer.addIceCandidate(candidate);
+  }
+  function handleConnectionState() {
+    console.log(peer.connectionState);
+    if (peer.connectionState === "connected") {
+      setConnected(true);
+    }
+    if (peer.connectionState === "failed") {
+      // peer.
+    }
   }
 
   function handleCalleeTrack(ev: RTCTrackEvent) {
@@ -98,7 +111,6 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
       userStream.getVideoTracks().forEach((track) => {
         track.stop();
       });
-
       peer.removeTrack(videoSender.current);
     }
   }
@@ -142,21 +154,11 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
     }
   }
   function exitCall() {
-    peer.close();
     navigate("/home");
     stopUserStream();
     window.location.reload();
   }
-  async function createOffer() {
-    try {
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(offer);
-      return offer;
-    } catch (err) {
-      console.log(err);
-      return null;
-    }
-  }
+
   async function onRTCConnection() {
     setConnected(true);
   }
@@ -178,7 +180,6 @@ export function WebrtcProvider({ children }: { children: ReactNode }) {
     <webrtcContext.Provider
       value={{
         peer,
-        createOffer,
         onRTCConnection,
         userStream,
         getUserStream,
