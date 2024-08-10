@@ -1,0 +1,12 @@
+name:  create and push docker image
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  create-docker-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
